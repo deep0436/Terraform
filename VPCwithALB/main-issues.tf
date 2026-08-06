@@ -148,7 +148,7 @@ resource "aws_instance" "jumpserver" {
   subnet_id = aws_subnet.publicsubnet.id
   instance_type = var.i_type  
   vpc_security_group_ids = [aws_security_group.websg.id]
-  key_name = "AWSKeyPair"
+  key_name = var.key_name
   user_data_base64 = base64encode(file("jump_userdata.sh"))
   tags = {
     Name = "${local.name}-Web-Server"
