@@ -33,3 +33,7 @@ variable "alltraffic" {
 variable "bkt" {
   type = string
 }
+
+variable "key_name" {
+  type = string
+}
