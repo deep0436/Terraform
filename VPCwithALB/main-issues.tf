@@ -41,18 +41,31 @@ resource "aws_subnet" "privatesubnet" {
   vpc_id = aws_vpc.myvpc.id
   cidr_block = var.subnet2_cidr
   availability_zone = var.az_1b
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false #making subnet private
   tags = {
     "Name" = "${local.name}-Private-Subnet"
   }
 }
 
+#elastic ip allocation
+resource "aws_eip" "nat_eip" {
+  domain = "vpc"
+
+  depends_on = [
+    aws_internet_gateway.igw
+  ]
+}
+
 #Creating NAT Gateway NAT-GW
 resource "aws_nat_gateway" "nat-gw" {
-  subnet_id = aws_subnet.privatesubnet.id
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id = aws_subnet.publicsubnet.id
   tags = {
     Name = "${local.name}-NAT-GW"
   }
+  depends_on = [
+    aws_internet_gateway.igw
+  ]
 }
 
 #Creating Public Route Table
@@ -60,7 +73,7 @@ resource "aws_route_table" "publicRT" {
   vpc_id = aws_vpc.myvpc.id
   route {
     cidr_block = var.alltraffic
-    gateway_id = aws_internet_gateway.my-IGW.id
+    gateway_id = aws_internet_gateway.igw.id
   }
   tags = {
     Name = "${local.name}-PublicRT"
@@ -87,7 +100,7 @@ resource "aws_route_table_association" "publicRTA" {
 
 #Associate route table to Private RT
 resource "aws_route_table_association" "privateRTA" {
-  route_table_id = aws_route_table.privateRT
+  route_table_id = aws_route_table.privateRT.id
   subnet_id = aws_subnet.privatesubnet.id
 }
 
@@ -99,7 +112,7 @@ resource "aws_security_group" "websg" {
     description = "From web to VPC"
     from_port = 80
     to_port = 80
-    protocol = TCP
+    protocol = "tcp"
     cidr_blocks = [ var.alltraffic ]
   }
 
@@ -107,7 +120,7 @@ resource "aws_security_group" "websg" {
     description = "SSH"
     from_port = 22
     to_port = 22
-    protocol = TCP
+    protocol = "tcp"
     cidr_blocks = [ var.alltraffic ]
   }
   
@@ -115,7 +128,7 @@ resource "aws_security_group" "websg" {
     description = "Outbound open for all"
     from_port = 0
     to_port = 0
-    protocol = -1
+    protocol = "-1"
     cidr_blocks = [ var.alltraffic ]
   }
 
@@ -134,8 +147,9 @@ resource "aws_instance" "jumpserver" {
   ami = var.i_ami
   subnet_id = aws_subnet.publicsubnet.id
   instance_type = var.i_type  
-  security_groups = [ aws_security_group.websg.id ]
-  user_data = base64encode(file(jump_userdata.sh))
+  vpc_security_group_ids = [aws_security_group.websg.id]
+  key_name = "AWSKeyPair"
+  user_data_base64 = base64encode(file("jump_userdata.sh"))
   tags = {
     Name = "${local.name}-Web-Server"
   }
@@ -146,8 +160,8 @@ resource "aws_instance" "dbserver" {
   ami = var.i_ami
   subnet_id = aws_subnet.privatesubnet.id
   instance_type = var.i_type 
-  security_groups = [ aws_security_group.websg.id ]
-  user_data = base64encode(file(db_userdata.sh))
+  vpc_security_group_ids = [aws_security_group.websg.id]
+  user_data_base64 = base64encode(file("db_userdata.sh"))
   tags = {
     Name = "${local.name}-DB-Server"
   }
@@ -158,7 +172,7 @@ resource "aws_lb" "myalb" {
   internal = false
   load_balancer_type = "application"
   name = "${local.name}-ALB"
-  security_groups = [ aws_security_group.websg.id ]
+  vpc_security_group_ids = [aws_security_group.websg.id]
   subnets = [ aws_subnet.publicsubnet.id,aws_subnet.privatesubnet.id ]
   tags = {
     Name = "${local.name}-ALB"
@@ -194,7 +208,7 @@ resource "aws_lb_target_group_attachment" "tga2" {
 
 #Adding listener to ALB
 resource "aws_lb_listener" "listener" {
-  load_balancer_arn = aws_lb.myalb
+  load_balancer_arn = aws_lb.myalb.arn
   port = 80
   protocol = "HTTP"
 
