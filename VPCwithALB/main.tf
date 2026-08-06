@@ -177,7 +177,7 @@ resource "aws_instance" "jumpserver" {
   instance_type          = var.i_type
   subnet_id              = aws_subnet.publicsubnet.id
   vpc_security_group_ids = [aws_security_group.websg.id]
-
+  key_name = var.key_name
   user_data = file("jump_userdata.sh")
 
   tags = {
