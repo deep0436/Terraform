@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    Name = var.backend-bkt
+    Name = "terraf-backend-s3-demo"
     key = "prod/terraform.tfstate"
     use_lockfile = true
   }
