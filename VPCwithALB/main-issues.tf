@@ -172,7 +172,7 @@ resource "aws_lb" "myalb" {
   internal = false
   load_balancer_type = "application"
   name = "${local.name}-ALB"
-  vpc_security_group_ids = [aws_security_group.websg.id]
+  security_groups = [aws_security_group.websg.id]
   subnets = [ aws_subnet.publicsubnet.id,aws_subnet.privatesubnet.id ]
   tags = {
     Name = "${local.name}-ALB"
