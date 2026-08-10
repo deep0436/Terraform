@@ -13,7 +13,7 @@ module "vpc" {
 #----------------------
 
 module "s3" {
-  source = "./modules/s3-bkt"
+  source = "./modules/s3"
   bkt_name = var.bkt
   region = var.i_region
   acl = var.acl
@@ -24,7 +24,7 @@ module "s3" {
 #----------------------
 
 module "ec2" {
-  source = "./modules/ec2_instances"
+  source = "./modules/ec2"
   subnet_id = aws_vpc.myvpc.id
   image = var.image
   i_type = var.i_type
