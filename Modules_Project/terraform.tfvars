@@ -1,5 +1,5 @@
 #----------------------
-# backend S3
+# backend S3 - This will not work, so hardcoded the name of bkt in backend.tf as it initializes before terraform
 #----------------------
 backend-bkt = "s3-tf-modules-project-demo"
 
